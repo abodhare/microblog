@@ -1,22 +1,26 @@
-import React from 'react';
+import React from 'react'
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
+
+import { NavBar } from '../components'
+import { UsersList, UsersInsert, UsersUpdate } from '../pages';
+
+import 'bootstrap/dist/css/bootstrap.min.css'
 
 function App() {
-  return (
-    <div>
-      <header>
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    return (
+        <Router>
+            <NavBar />
+            <Switch>
+              <Route path="/users/list" exact component={UsersList} />
+              <Route path="/users/create" exact component={UsersInsert} />
+              <Route
+                path="/users/update/:id"
+                exact
+                component={UsersUpdate}
+              />
+            </Switch>
+        </Router>
+    )
 }
 
-export default App;
+export default App
