@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
+const config = require('../config.json');
 
 mongoose
-    .connect('mongodb://127.0.0.1:27017/microblog', { useNewUrlParser: true })
+    .connect(process.env.MONGODB_URI || config.connectionString, { useCreateIndex: true, useNewUrlParser: true })
     .catch(e => {
         console.error('Connection error', e.message);
     });

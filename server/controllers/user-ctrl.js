@@ -1,131 +1,78 @@
+const config = require('../config.json');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user-model');
+const Role = require('../_helpers/role');
 
-createUser = (req, res) => {
-    const body = req.body;
+async function authenticate({ username, password }) {
+    const user = await User.findOne({ username });
+    if (user && bcrypt.compareSync(password, user.hash)) {
+        const { hash, ...userWithoutHash } = user.toObject();
+        const token = jwt.sign({ sub: user.id, role: user.role }, config.secret);
+        return {
+            ...userWithoutHash,
+            token
+        };
+    }
+}
 
-    if (!body) {
-        return res.status(400).json({
-            success: false,
-            error: 'You must provide a user',
-        });
+async function getAll() {
+    return await User.find().select('-hash');
+}
+
+async function getById(id) {
+    return await User.findById(id).select('-hash');
+}
+
+async function create(userParam) {
+    // validate
+    if (await User.findOne({ username: userParam.username })) {
+        throw 'Username "' + userParam.username + '" is already taken';
     }
 
-    const user = new User(body);
+    const user = new User(userParam);
 
-    if (!user) {
-        return res.status(400).json({ success: false, error: err });
+    // hash password
+    if (userParam.password) {
+        user.hash = bcrypt.hashSync(userParam.password, 10);
     }
 
-    user
-        .save()
-        .then(() => {
-            return res.status(201).json({
-                success: true,
-                id: user._id,
-                message: 'User created',
-            });
-        })
-        .catch(error => {
-            return res.status(400).json({
-                error,
-                message: 'User not created',
-            });
-        })
-};
+    // make sure user admin cannot be registrated
+    user.role = Role.User;
 
-updateUser = async (req, res) => {
-    const body = req.body;
+    // save user
+    await user.save();
+}
 
-    if (!body) {
-        return res.status(400).json({
-            success: false,
-            error: 'You must provide a body to update',
-        });
+async function update(id, userParam) {
+    const user = await User.findById(id);
+
+    // validate
+    if (!user) throw 'User not found';
+    if (user.username !== userParam.username && await User.findOne({ username: userParam.username })) {
+        throw 'Username "' + userParam.username + '" is already taken';
     }
 
-    User.findOne({ _id: req.params.id }, (err, user) => {
-        if (err) {
-            return res.status(404).json({
-                err,
-                message: 'User not found',
-            });
-        }
+    // hash password if it was entered
+    if (userParam.password) {
+        userParam.hash = bcrypt.hashSync(userParam.password, 10);
+    }
 
-        user.name = body.name;
-        user.posts = user.posts.concat(body.posts);
-        user
-            .save()
-            .then(() => {
-                return res.status(200).json({
-                    success: true,
-                    id: user._id,
-                    message: 'User updated',
-                });
-            })
-            .catch(error => {
-                return res.status(404).json({
-                    error,
-                    message: 'User not updated',
-                });
-            })
-    })
-};
+    // copy userParam properties to user
+    Object.assign(user, userParam);
 
-deleteUser = async (req, res) => {
-    await User.findOneAndDelete({ _id: req.params.id }, (err, user) => {
-        if (err) {
-            return res.status(400).json({ success: false, error: err });
-        }
+    await user.save();
+}
 
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: 'User not found',
-            });
-        }
-
-        return res.status(200).json({ success: true, data: user });
-    }).catch(err => console.error(err));
-};
-
-getUserById = async (req, res) => {
-    await User.findOne({ _id: req.params.id }, (err, user) => {
-        if (err) {
-            return res.status(400).json({ success: false, error: err });
-        }
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: 'User not found',
-            });
-        }
-
-        return res.status(200).json({ success: true, data: user });
-    }).catch(err => console.error(err));
-};
-
-getUsers = async (req, res) => {
-    await User.find({}, (err, users) => {
-        if (err) {
-            return res.status(400).json({ success: false, error: err });
-        }
-
-        if (users.length === 0) {
-            return res.status(404).json({
-                success: false,
-                error: 'Could not get the users',
-            });
-        }
-
-        return res.status(200).json({ success: true, data: users });
-    }).catch(err => console.error(err));
-};
+async function _delete(id) {
+    await User.findByIdAndRemove(id);
+}
 
 module.exports = {
-    createUser,
-    updateUser,
-    deleteUser,
-    getUserById,
-    getUsers,
+    authenticate,
+    getAll,
+    getById,
+    create,
+    update,
+    delete: _delete
 };
