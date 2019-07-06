@@ -26,14 +26,9 @@ function register(req, res, next) {
 }
 
 function getAll(req, res, next) {
-    if (req.user.role === Role.Admin) {
-        UserCtrl.getAll()
-            .then(users => res.json(users))
-            .catch(err => next(err));
-    }
-    else {
-        return res.status(401).json({ message: 'Unauthorized' });
-    }
+    UserCtrl.getAll()
+        .then(users => res.json(users))
+        .catch(err => next(err));
 }
 
 function getCurrent(req, res, next) {
@@ -43,14 +38,6 @@ function getCurrent(req, res, next) {
 }
 
 function getById(req, res, next) {
-    const currentUser = req.user;
-    const id = parseInt(req.params.id);
-
-    // only allow admins to access other user records
-    if (id !== currentUser.sub && currentUser.role !== Role.Admin) {
-        return res.status(401).json({ message: 'Unauthorized' });
-    }
-
     UserCtrl.getById(req.params.id)
         .then(user => user ? res.json(user) : res.sendStatus(404))
         .catch(err => next(err));
