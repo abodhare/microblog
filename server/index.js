@@ -6,6 +6,7 @@ const errorHandler = require('./_helpers/error-handler');
 
 const db = require('./db');
 const userRouter = require('./routes/user-router');
+const postRouter = require('./routes/posts-router');
 
 const app = express();
 const apiPort = 3000;
@@ -18,6 +19,7 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'))
 
 app.use(jwt());
 app.use('/users', userRouter);
+app.use('/posts', postRouter);
 app.use(errorHandler);
 
 app.listen(apiPort, () => console.log(`Server running on port ${apiPort}`));
