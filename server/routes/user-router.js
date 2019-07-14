@@ -1,4 +1,5 @@
 const express = require('express');
+const Busboy = require('busboy');
 const router = express.Router();
 const UserCtrl = require('../controllers/user-ctrl');
 const Role = require('../_helpers/role');
@@ -20,7 +21,16 @@ function authenticate(req, res, next) {
 }
 
 function register(req, res, next) {
-    UserCtrl.create(req.body)
+
+    console.log(req.body);
+    let busboy = new Busboy({ headers: req.headers });
+
+    busboy.on('finish', function() {
+        console.log('Upload finished');
+    })
+    req.pipe(busboy);
+
+    UserCtrl.create(req.body, req.files.photo || {})
         .then(() => res.json({}))
         .catch(err => next(err));
 }
@@ -44,9 +54,23 @@ function getById(req, res, next) {
 }
 
 function update(req, res, next) {
-    UserCtrl.update(req.params.id, req.body)
-        .then(() => res.json({}))
-        .catch(err => next(err));
+
+    let busboy = new Busboy({ headers: req.headers });
+
+    busboy.on('finish', function() {
+        console.log('Upload finished');
+    })
+    req.pipe(busboy);
+
+    if (req.files.photo) {
+        UserCtrl.update(req.params.id, req.body, req.files.photo)
+            .then(() => req.json({}))
+            .catch(err => next(err));
+    } else {
+        UserCtrl.update(req.params.id, req.body)
+            .then(() => res.json({}))
+            .catch(err => next(err));
+    }
 }
 
 function _delete(req, res, next) {

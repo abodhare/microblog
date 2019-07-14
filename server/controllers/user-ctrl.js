@@ -24,11 +24,13 @@ async function getById(id) {
     return await User.findById(id).select('-hash');
 }
 
-async function create(userParam) {
+async function create(userParam, file) {
     // validate
     if (await User.findOne({ username: userParam.username })) {
         throw 'Username "' + userParam.username + '" is already taken';
     }
+
+    if (file) userParam.photo = file;
 
     const user = new User(userParam);
 
@@ -44,7 +46,7 @@ async function create(userParam) {
     await user.save();
 }
 
-async function update(id, userParam) {
+async function update(id, userParam, file = null) {
     const user = await User.findById(id);
 
     // validate
@@ -56,6 +58,11 @@ async function update(id, userParam) {
     // hash password if it was entered
     if (userParam.password) {
         userParam.hash = bcrypt.hashSync(userParam.password, 10);
+    }
+
+    // Add photo to file
+    if (file !== null) {
+        userParam.photo = file;
     }
 
     // copy userParam properties to user
